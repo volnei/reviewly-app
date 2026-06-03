@@ -6,310 +6,390 @@
     <title>Reviewly — the PR review console</title>
     <meta
       name="description"
-      content="A fast, local, keyboard-driven desktop app for reviewing GitHub pull requests — with an AI guide that reads the whole PR and walks you through it."
+      content="A fast, keyboard-driven desktop app for reviewing GitHub pull requests — with an AI guide that reads the whole PR and walks you through it."
     />
     <meta name="theme-color" content="#232120" />
     <meta property="og:title" content="Reviewly — the PR review console" />
-    <meta
-      property="og:description"
-      content="Review pull requests with a guide, not a guess. A calm desktop app for reviewing GitHub PRs."
-    />
+    <meta property="og:description" content="Review pull requests with a guide, not a guess." />
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Crect width='24' height='24' rx='6' fill='%23232120'/%3E%3Cpath d='M9 6.5V17.5' stroke='%239b7dff' stroke-width='2.7' stroke-linecap='round'/%3E%3Cpath d='M9 9.3C9.4 6.9 12 6.1 15 7.1' stroke='%239b7dff' stroke-width='2.7' stroke-linecap='round'/%3E%3C/svg%3E"
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <style>
-      /* the app's own typeface */
       @font-face {
         font-family: "Cal Sans Text";
         src: url("./fonts/cal-sans-text.woff2") format("woff2");
-        font-weight: 300 700;
-        font-style: normal;
-        font-display: swap;
+        font-weight: 300 700; font-style: normal; font-display: swap;
       }
 
       :root {
         --bg: oklch(0.165 0.008 65);
+        --bg-elev: oklch(0.205 0.008 65);
         --fg: oklch(0.97 0.005 75);
-        --muted: oklch(0.7 0.008 65);
-        --faint: oklch(0.6 0.008 65 / 0.6);
+        --muted: oklch(0.71 0.008 65);
+        --faint: oklch(0.6 0.008 65 / 0.62);
         --violet: oklch(0.62 0.17 280);
-        --violet-lift: oklch(0.74 0.15 285);
-        --hairline: oklch(0.62 0.02 75 / 0.12);
-        --hairline-strong: oklch(0.65 0.02 75 / 0.2);
+        --violet-lift: oklch(0.76 0.15 286);
+        --amber: oklch(0.8 0.13 78);
+        --green: oklch(0.76 0.15 150);
+        --hairline: oklch(0.65 0.02 75 / 0.11);
+        --hairline-2: oklch(0.65 0.02 75 / 0.2);
         --sans: "Cal Sans Text", ui-sans-serif, system-ui, -apple-system, sans-serif;
         --mono: "JetBrains Mono", ui-monospace, monospace;
-        --maxw: 760px;
+        --maxw: 1080px;
+        --ease: cubic-bezier(0.22, 1, 0.36, 1);
       }
 
       * { box-sizing: border-box; margin: 0; padding: 0; }
-      html { scroll-behavior: smooth; }
+      html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
       body {
-        font-family: var(--sans);
-        background: var(--bg);
-        color: var(--fg);
-        font-size: 17px;
-        line-height: 1.6;
-        letter-spacing: -0.005em;
-        -webkit-font-smoothing: antialiased;
-        text-rendering: optimizeLegibility;
+        font-family: var(--sans); background: var(--bg); color: var(--fg);
+        font-size: 17px; line-height: 1.6; letter-spacing: -0.006em;
+        -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; overflow-x: hidden;
       }
       a { color: inherit; text-decoration: none; }
       ::selection { background: oklch(0.62 0.17 280 / 0.32); }
 
-      /* a single, very subtle violet wash up top */
-      body::before {
-        content: "";
-        position: fixed; inset: 0; pointer-events: none; z-index: 0;
-        background: radial-gradient(50% 38% at 50% -6%, oklch(0.62 0.17 280 / 0.16), transparent 70%);
+      /* atmosphere */
+      .bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+      .bg-glow {
+        background:
+          radial-gradient(48% 36% at 50% -4%, oklch(0.62 0.17 280 / 0.22), transparent 72%),
+          radial-gradient(34% 30% at 84% 8%, oklch(0.66 0.14 300 / 0.1), transparent 70%);
+        animation: pulse 16s var(--ease) infinite alternate;
+      }
+      @keyframes pulse { from { opacity: 0.8 } to { opacity: 1 } }
+      .bg-dots {
+        background-image: radial-gradient(oklch(0.7 0.02 75 / 0.06) 1px, transparent 1px);
+        background-size: 30px 30px;
+        mask-image: radial-gradient(110% 60% at 50% 0%, #000 30%, transparent 78%);
+      }
+      .bg-grain {
+        opacity: 0.35; mix-blend-mode: overlay;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
       }
 
-      .wrap { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+      .wrap { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 28px; position: relative; z-index: 1; }
+      .narrow { max-width: 720px; }
 
-      .mono { font-family: var(--mono); }
+      /* shared bits */
       .eyebrow {
-        font-family: var(--mono); font-size: 12px; font-weight: 500;
-        letter-spacing: 0.16em; text-transform: uppercase; color: var(--violet-lift);
+        font-family: var(--mono); font-size: 11.5px; font-weight: 500;
+        letter-spacing: 0.18em; text-transform: uppercase; color: var(--violet-lift);
+        display: inline-flex; align-items: center; gap: 8px;
       }
+      .eyebrow::before { content: ""; width: 14px; height: 1px; background: var(--violet-lift); opacity: 0.7; }
+      kbd { font-family: var(--mono); font-size: 11px; color: var(--muted); border: 1px solid var(--hairline-2); border-radius: 5px; padding: 1px 5px; }
 
-      /* nav */
-      nav { position: relative; z-index: 2; }
-      .nav-inner { display: flex; align-items: center; gap: 16px; height: 66px; }
-      .brand { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 18px; letter-spacing: -0.02em; }
-      .brand .mark { color: var(--violet-lift); display: grid; place-items: center; width: 28px; height: 28px; border-radius: 7px; background: oklch(0.62 0.17 280 / 0.12); border: 1px solid oklch(0.62 0.17 280 / 0.28); }
-      .nav-right { margin-left: auto; display: flex; align-items: center; gap: 22px; }
-      .nav-right a.t { font-size: 14.5px; color: var(--muted); transition: color 0.2s; }
-      .nav-right a.t:hover { color: var(--fg); }
-      @media (max-width: 560px) { .nav-right a.t { display: none; } }
-
-      /* buttons */
       .btn {
         display: inline-flex; align-items: center; gap: 8px; font-family: var(--sans);
-        font-weight: 600; font-size: 15px; padding: 10px 17px; border-radius: 10px;
-        cursor: pointer; border: 1px solid transparent; transition: background 0.2s, border-color 0.2s, transform 0.15s;
+        font-weight: 600; font-size: 15px; padding: 11px 18px; border-radius: 11px; cursor: pointer;
+        border: 1px solid transparent; transition: background 0.2s, border-color 0.2s, transform 0.18s var(--ease), box-shadow 0.3s;
       }
       .btn svg { width: 16px; height: 16px; }
-      .btn-primary { background: var(--violet); color: oklch(0.99 0.01 285); }
-      .btn-primary:hover { background: var(--violet-lift); }
-      .btn-ghost { color: var(--fg); border-color: var(--hairline-strong); }
-      .btn-ghost:hover { border-color: var(--faint); background: oklch(0.7 0.02 75 / 0.04); }
-      .btn-sm { padding: 7px 13px; font-size: 14px; }
-      .btn:active { transform: translateY(1px); }
-
-      kbd {
-        font-family: var(--mono); font-size: 11.5px; color: var(--muted);
-        border: 1px solid var(--hairline-strong); border-radius: 5px; padding: 1px 5px;
+      .btn-primary {
+        background: linear-gradient(180deg, var(--violet-lift), var(--violet));
+        color: #fff; box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.25), 0 8px 24px -10px var(--violet);
       }
+      .btn-primary:hover { transform: translateY(-1px); box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.3), 0 14px 34px -12px var(--violet); }
+      .btn-ghost { color: var(--fg); border-color: var(--hairline-2); }
+      .btn-ghost:hover { border-color: var(--faint); background: oklch(0.7 0.02 75 / 0.04); transform: translateY(-1px); }
+      .btn-sm { padding: 8px 14px; font-size: 14px; border-radius: 9px; }
+      .btn:active { transform: translateY(0); }
+
+      /* nav */
+      nav { position: sticky; top: 0; z-index: 40; backdrop-filter: blur(14px) saturate(150%); background: oklch(0.165 0.008 65 / 0.7); border-bottom: 1px solid transparent; transition: border-color 0.3s; }
+      nav.scrolled { border-color: var(--hairline); }
+      .nav-inner { display: flex; align-items: center; height: 66px; }
+      .brand { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 18px; letter-spacing: -0.02em; }
+      .brand .mark { color: var(--violet-lift); display: grid; place-items: center; width: 28px; height: 28px; border-radius: 7px; background: oklch(0.62 0.17 280 / 0.12); border: 1px solid oklch(0.62 0.17 280 / 0.28); }
+      .nav-right { margin-left: auto; display: flex; align-items: center; gap: 24px; }
+      .nav-right a.t { font-size: 14.5px; color: var(--muted); transition: color 0.2s; }
+      .nav-right a.t:hover { color: var(--fg); }
+      @media (max-width: 600px) { .nav-right a.t { display: none; } }
 
       /* hero */
-      .hero { padding: 70px 0 56px; }
+      .hero { padding: 80px 0 72px; display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 56px; align-items: center; }
+      @media (max-width: 900px) { .hero { grid-template-columns: 1fr; gap: 44px; padding: 60px 0 56px; } }
+      .badge {
+        display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11.5px;
+        color: var(--muted); border: 1px solid var(--hairline-2); border-radius: 99px; padding: 5px 12px 5px 9px;
+        background: oklch(0.7 0.02 75 / 0.03);
+      }
+      .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px 1px oklch(0.76 0.15 150 / 0.7); }
       .hero h1 {
-        font-weight: 600; font-size: clamp(34px, 6vw, 52px); line-height: 1.06;
-        letter-spacing: -0.025em; margin-top: 20px; max-width: 14ch;
+        font-weight: 600; font-size: clamp(38px, 5.6vw, 60px); line-height: 1.04;
+        letter-spacing: -0.03em; margin-top: 22px;
       }
-      .hero h1 .accent { color: var(--violet-lift); }
-      .hero p.sub { margin-top: 18px; max-width: 52ch; font-size: 18px; color: var(--muted); }
+      .hero h1 .accent { color: var(--violet-lift); position: relative; white-space: nowrap; }
+      .hero h1 .accent::after {
+        content: ""; position: absolute; left: 2%; right: 2%; bottom: 0.08em; height: 3px; border-radius: 3px;
+        background: linear-gradient(90deg, transparent, var(--violet), transparent);
+        transform: scaleX(0); transform-origin: left; animation: underline 0.9s var(--ease) 0.6s forwards;
+      }
+      @keyframes underline { to { transform: scaleX(1); } }
+      .hero p.sub { margin-top: 20px; max-width: 46ch; font-size: 18px; color: var(--muted); }
       .hero-cta { margin-top: 28px; display: flex; gap: 11px; align-items: center; flex-wrap: wrap; }
-      .hero-note { margin-top: 18px; font-family: var(--mono); font-size: 12.5px; color: var(--faint); }
+      .hero-note { margin-top: 18px; font-family: var(--mono); font-size: 12px; color: var(--faint); line-height: 1.7; }
 
-      hr { border: 0; border-top: 1px solid var(--hairline); margin: 0; }
-
-      /* sections */
-      section { padding: 56px 0; }
-      section h2 { font-weight: 600; font-size: clamp(24px, 4vw, 30px); letter-spacing: -0.02em; margin-top: 14px; }
-      section .lead { color: var(--muted); margin-top: 12px; max-width: 56ch; }
-
-      /* feature list — clean rows, no cards */
-      .feats { margin-top: 30px; display: flex; flex-direction: column; gap: 26px; }
-      .feat { display: flex; gap: 16px; }
-      .feat .ic {
-        width: 34px; height: 34px; flex: none; border-radius: 9px; display: grid; place-items: center;
-        color: var(--violet-lift); background: oklch(0.62 0.17 280 / 0.1); border: 1px solid oklch(0.62 0.17 280 / 0.22);
+      /* hero visual — abstract "review path", not a screenshot */
+      .path-card {
+        border: 1px solid var(--hairline); border-radius: 18px; padding: 26px 24px;
+        background: linear-gradient(180deg, oklch(0.22 0.008 65 / 0.6), oklch(0.18 0.008 65 / 0.75));
+        box-shadow: 0 30px 80px -40px oklch(0.62 0.17 280 / 0.45), 0 1px 0 oklch(1 0 0 / 0.04) inset;
+        position: relative; overflow: hidden;
       }
-      .feat .ic svg { width: 17px; height: 17px; }
-      .feat h3 { font-weight: 600; font-size: 16.5px; letter-spacing: -0.01em; }
-      .feat p { color: var(--muted); font-size: 15px; margin-top: 3px; }
+      .path-card::before { content: ""; position: absolute; inset: 0; background: radial-gradient(70% 50% at 30% 0%, oklch(0.62 0.17 280 / 0.12), transparent 70%); pointer-events: none; }
+      .path-card .ph { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); display: flex; align-items: center; gap: 8px; }
+      .path-card .ph .sp { color: var(--violet-lift); }
+      .rail { margin-top: 20px; display: flex; flex-direction: column; gap: 2px; position: relative; }
+      .rail::before { content: ""; position: absolute; left: 11px; top: 14px; bottom: 14px; width: 2px; background: linear-gradient(var(--violet), oklch(0.62 0.17 280 / 0.2)); border-radius: 2px; }
+      .node { display: flex; gap: 14px; align-items: flex-start; padding: 11px 0; position: relative; }
+      .node .pin { width: 24px; height: 24px; border-radius: 50%; flex: none; display: grid; place-items: center; font-family: var(--mono); font-size: 11px; color: #fff; z-index: 1; box-shadow: 0 0 0 5px var(--bg); }
+      .node.v .pin { background: var(--violet); }
+      .node.a .pin { background: var(--amber); color: #2a2410; }
+      .node.g .pin { background: var(--green); color: #0c2417; }
+      .node .body { padding-top: 1px; display: flex; flex-direction: column; }
+      .node .tag { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; }
+      .node.v .tag { color: var(--violet-lift); }
+      .node.a .tag { color: var(--amber); }
+      .node.g .tag { color: var(--green); }
+      .node .ttl { font-size: 14.5px; font-weight: 500; margin-top: 3px; letter-spacing: -0.01em; }
+      .node .meta { font-family: var(--mono); font-size: 11px; color: var(--faint); margin-top: 3px; }
+
+      hr { border: 0; border-top: 1px solid var(--hairline); }
+
+      section { padding: 84px 0; }
+      .sec-head h2 { font-weight: 600; font-size: clamp(26px, 4vw, 36px); letter-spacing: -0.025em; margin-top: 14px; }
+      .sec-head p { color: var(--muted); margin-top: 13px; max-width: 54ch; font-size: 17.5px; }
+
+      /* features — numbered grid with craft */
+      .feat-grid { margin-top: 44px; display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--hairline); border: 1px solid var(--hairline); border-radius: 16px; overflow: hidden; }
+      @media (max-width: 720px) { .feat-grid { grid-template-columns: 1fr; } }
+      .feat { background: var(--bg); padding: 28px; position: relative; transition: background 0.3s; }
+      .feat:hover { background: oklch(0.2 0.008 65 / 0.5); }
+      .feat .top { display: flex; align-items: center; justify-content: space-between; }
+      .feat .ic { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; color: var(--violet-lift); background: oklch(0.62 0.17 280 / 0.1); border: 1px solid oklch(0.62 0.17 280 / 0.22); }
+      .feat .ic svg { width: 18px; height: 18px; }
+      .feat .idx { font-family: var(--mono); font-size: 12px; color: var(--faint); }
+      .feat h3 { font-weight: 600; font-size: 17.5px; letter-spacing: -0.015em; margin-top: 18px; }
+      .feat p { color: var(--muted); font-size: 14.5px; margin-top: 7px; line-height: 1.55; }
 
       /* download */
-      .dl { display: flex; flex-direction: column; gap: 10px; margin-top: 26px; }
-      .dl-card {
-        display: flex; align-items: center; gap: 14px; padding: 15px 18px; border-radius: 12px;
-        border: 1px solid var(--hairline); background: oklch(0.7 0.02 75 / 0.025);
-        transition: border-color 0.2s, background 0.2s;
-      }
-      .dl-card:hover { border-color: var(--violet); background: oklch(0.62 0.17 280 / 0.06); }
+      .dl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 40px; }
+      @media (max-width: 720px) { .dl { grid-template-columns: 1fr; } }
+      .dl-card { display: flex; align-items: center; gap: 14px; padding: 17px 18px; border-radius: 13px; border: 1px solid var(--hairline); background: oklch(0.7 0.02 75 / 0.025); transition: border-color 0.2s, background 0.2s, transform 0.2s var(--ease); }
+      .dl-card:hover { border-color: var(--violet); background: oklch(0.62 0.17 280 / 0.06); transform: translateY(-3px); }
       .dl-card .os { width: 26px; height: 26px; flex: none; }
-      .dl-card b { font-weight: 600; font-size: 15.5px; }
-      .dl-card .sub { font-family: var(--mono); font-size: 12px; color: var(--faint); margin-top: 1px; }
+      .dl-card b { font-weight: 600; font-size: 15px; }
+      .dl-card .s { font-family: var(--mono); font-size: 11.5px; color: var(--faint); margin-top: 2px; }
       .dl-card .arr { margin-left: auto; color: var(--faint); transition: transform 0.2s, color 0.2s; }
       .dl-card:hover .arr { transform: translate(2px, -2px); color: var(--violet-lift); }
 
-      /* footer */
-      footer { padding: 36px 0 56px; color: var(--faint); font-size: 13.5px; }
+      footer { padding: 40px 0 60px; color: var(--faint); font-size: 13px; }
       .foot { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
       .foot-links { margin-left: auto; display: flex; gap: 20px; }
       .foot-links a { color: var(--muted); transition: color 0.2s; }
       .foot-links a:hover { color: var(--fg); }
 
-      /* gentle load-in */
-      .rise { opacity: 0; transform: translateY(12px); animation: rise 0.7s cubic-bezier(0.22,1,0.36,1) forwards; }
+      .rise { opacity: 0; transform: translateY(14px); animation: rise 0.8s var(--ease) forwards; }
       @keyframes rise { to { opacity: 1; transform: none; } }
-      @media (prefers-reduced-motion: reduce) { .rise { animation: none; opacity: 1; transform: none; } }
+      .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.8s var(--ease), transform 0.8s var(--ease); }
+      .reveal.in { opacity: 1; transform: none; }
+      .draw path { stroke-dasharray: 30; stroke-dashoffset: 30; animation: draw 1s var(--ease) 0.3s forwards; }
+      .draw path:nth-child(2) { animation-delay: 0.55s; }
+      @keyframes draw { to { stroke-dashoffset: 0; } }
+      @media (prefers-reduced-motion: reduce) {
+        *, ::before, ::after { animation: none !important; transition: none !important; }
+        .rise, .reveal { opacity: 1 !important; transform: none !important; }
+        .draw path { stroke-dashoffset: 0 !important; }
+        .hero h1 .accent::after { transform: scaleX(1) !important; }
+      }
     </style>
   </head>
   <body>
-    <div class="wrap">
-      <nav>
-        <div class="nav-inner">
-          <a class="brand" href="#top">
-            <span class="mark">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M9 6.5V17.5" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" />
-                <path d="M9 9.3C9.4 6.9 12 6.1 15 7.1" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" />
-              </svg>
-            </span>
-            reviewly
-          </a>
-          <div class="nav-right">
-            <a class="t" href="#features">Features</a>
-            <a class="t" href="#download">Download</a>
-            <a class="btn btn-primary btn-sm" href="#download">Get Reviewly</a>
-          </div>
+    <div class="bg bg-glow"></div>
+    <div class="bg bg-dots"></div>
+    <div class="bg bg-grain"></div>
+
+    <nav id="nav">
+      <div class="wrap nav-inner">
+        <a class="brand" href="#top">
+          <span class="mark">
+            <svg class="draw" width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M9 6.5V17.5" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" />
+              <path d="M9 9.3C9.4 6.9 12 6.1 15 7.1" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" />
+            </svg>
+          </span>
+          reviewly
+        </a>
+        <div class="nav-right">
+          <a class="t" href="#features">Features</a>
+          <a class="t" href="#download">Download</a>
+          <a class="btn btn-primary btn-sm" href="#download">Get Reviewly</a>
         </div>
-      </nav>
+      </div>
+    </nav>
 
-      <span id="top"></span>
+    <span id="top"></span>
 
+    <div class="wrap">
       <!-- HERO -->
       <header class="hero">
-        <span class="eyebrow rise">macOS · Windows · Linux</span>
-        <h1 class="rise" style="animation-delay: 0.06s">
-          Review pull requests with a <span class="accent">guide</span>.
-        </h1>
-        <p class="sub rise" style="animation-delay: 0.12s">
-          Reviewly is a calm desktop console for reviewing GitHub PRs. Its AI reads the whole
-          pull request and walks you through it — the core change first, then what depends on it —
-          with a suggested comment where it counts.
-        </p>
-        <div class="hero-cta rise" style="animation-delay: 0.18s">
-          <a class="btn btn-primary" id="primary-dl" href="https://github.com/volnei/reviewly-app/releases/latest">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span id="primary-dl-label">Download</span>
-          </a>
-          <a class="btn btn-ghost" href="#features">See how it works</a>
+        <div>
+          <span class="badge rise"><span class="dot"></span> macOS · Windows · Linux</span>
+          <h1 class="rise" style="animation-delay:.06s">
+            Review pull requests with a <span class="accent">guide</span>.
+          </h1>
+          <p class="sub rise" style="animation-delay:.12s">
+            A calm desktop console for GitHub PRs. Its AI reads the whole pull request and walks you
+            through it — core change first, then what depends on it — with a comment drafted where it counts.
+          </p>
+          <div class="hero-cta rise" style="animation-delay:.18s">
+            <a class="btn btn-primary" id="primary-dl" href="https://github.com/volnei/reviewly-app/releases/latest">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span id="primary-dl-label">Download</span>
+            </a>
+            <a class="btn btn-ghost" href="#features">See how it works</a>
+          </div>
+          <p class="hero-note rise" style="animation-delay:.24s">
+            Sign in with GitHub · runs your local AI CLI, so the diff never leaves your machine · <kbd>⌘ K</kbd> to jump anywhere
+          </p>
         </div>
-        <p class="hero-note rise" style="animation-delay: 0.24s">
-          Runs your local AI CLI, so the diff never leaves your machine · <kbd>⌘ K</kbd> to jump anywhere
-        </p>
+
+        <!-- abstract review-path visual -->
+        <div class="path-card rise" style="animation-delay:.3s" aria-hidden="true">
+          <div class="ph"><span class="sp">✦</span> Guided tour · the route the AI plans</div>
+          <div class="rail">
+            <div class="node v">
+              <span class="pin">1</span>
+              <span class="body"><span class="tag">Orientation</span><span class="ttl">Why a keyed task? The deleted-row problem</span><span class="meta">task.service.ts:22</span></span>
+            </div>
+            <div class="node a">
+              <span class="pin">2</span>
+              <span class="body"><span class="tag">Worth a comment</span><span class="ttl">Idempotency key now scoped to the seat</span><span class="meta">booking-effects.ts:253 · comment drafted</span></span>
+            </div>
+            <div class="node g">
+              <span class="pin">3</span>
+              <span class="body"><span class="tag">Nice</span><span class="ttl">Tests cover all three cancellation kinds</span><span class="meta">notify.spec.ts:88</span></span>
+            </div>
+          </div>
+        </div>
       </header>
+    </div>
 
-      <hr />
+    <div class="wrap"><hr /></div>
 
-      <!-- FEATURES -->
-      <section id="features">
-        <span class="eyebrow">What it does</span>
-        <h2>Less tab-soup. More reviewing.</h2>
-        <p class="lead">Everything you need to actually read a pull request, in one quiet, keyboard-first window.</p>
-
-        <div class="feats">
+    <!-- FEATURES -->
+    <section id="features">
+      <div class="wrap">
+        <div class="sec-head narrow">
+          <span class="eyebrow">What it does</span>
+          <h2>Less tab-soup. More reviewing.</h2>
+          <p>Everything you need to actually read a pull request, in one quiet, keyboard-first window.</p>
+        </div>
+        <div class="feat-grid reveal">
           <div class="feat">
-            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m13.5-6.5-2 2m-7 7-2 2m11 0-2-2m-7-7-2-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
-            <div>
-              <h3>Guided AI review</h3>
-              <p>A risk-ordered walkthrough — orientation, the parts worth a comment, then a nod to what's solid — with editable comments you can add to your review or post straight to GitHub.</p>
+            <div class="top">
+              <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m13.5-6.5-2 2m-7 7-2 2m11 0-2-2m-7-7-2-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+              <span class="idx">01</span>
             </div>
+            <h3>Guided AI review</h3>
+            <p>A risk-ordered walkthrough — orientation, the parts worth a comment, then a nod to what's solid — with editable comments you add to your review or post straight to GitHub.</p>
           </div>
           <div class="feat">
-            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M7 4a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm0 6v10m10-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm0 0c0 4-4 4-7 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <div>
-              <h3>Your local git workspace</h3>
-              <p>Clone and associate repos, check out any PR with one click, then stage, commit (with an AI-drafted message), and push — without leaving the app.</p>
+            <div class="top">
+              <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M7 4a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm0 6v10m10-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm0 0c0 4-4 4-7 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              <span class="idx">02</span>
             </div>
+            <h3>Your local git workspace</h3>
+            <p>Clone and associate repos, check out any PR with one click, then stage, commit (with an AI-drafted message), and push — without leaving the app.</p>
           </div>
           <div class="feat">
-            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="12" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M7 10h.01M11 10h.01M15 10h.01M8 14h8" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg></span>
-            <div>
-              <h3>Calm &amp; keyboard-first</h3>
-              <p>A Linear-clean interface with a command palette, j/k navigation, split &amp; unified diffs, and mark-viewed-and-next. No spinners between every click.</p>
+            <div class="top">
+              <span class="ic"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="12" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M7 10h.01M11 10h.01M15 10h.01M8 14h8" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg></span>
+              <span class="idx">03</span>
             </div>
+            <h3>Calm &amp; keyboard-first</h3>
+            <p>A Linear-clean interface with a command palette, j/k navigation, split &amp; unified diffs, and mark-viewed-and-next. No spinners between every click.</p>
           </div>
           <div class="feat">
-            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3 4 6v6c0 4.5 3.3 7.6 8 9 4.7-1.4 8-4.5 8-9V6l-8-3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <div>
-              <h3>Local &amp; private</h3>
-              <p>Your token and code stay on your machine. AI review drives the Claude or Codex CLI you already have installed — nothing is uploaded to a third-party reviewer.</p>
+            <div class="top">
+              <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3 4 6v6c0 4.5 3.3 7.6 8 9 4.7-1.4 8-4.5 8-9V6l-8-3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              <span class="idx">04</span>
             </div>
+            <h3>Local &amp; private</h3>
+            <p>Your token and code stay on your machine. AI review drives the Claude or Codex CLI you already have installed — nothing is uploaded to a third-party reviewer.</p>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <hr />
+    <div class="wrap"><hr /></div>
 
-      <!-- DOWNLOAD -->
-      <section id="download">
-        <span class="eyebrow">Get Reviewly</span>
-        <h2>Download for your platform.</h2>
-        <p class="lead">Built with Tauri — small, fast, native. Signed &amp; notarized on macOS.</p>
-
-        <div class="dl">
+    <!-- DOWNLOAD -->
+    <section id="download">
+      <div class="wrap">
+        <div class="sec-head narrow">
+          <span class="eyebrow">Get Reviewly</span>
+          <h2>Download for your platform.</h2>
+          <p>Built with Tauri — small, fast, native. Signed &amp; notarized on macOS. Sign in with GitHub to get started.</p>
+        </div>
+        <div class="dl reveal">
           <a class="dl-card" href="https://github.com/volnei/reviewly-app/releases/latest">
             <svg class="os" viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.8-3.5.8s-1.8-.8-3-.8c-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7 2-1.1 2.8-2.2c.9-1.3 1.2-2.5 1.3-2.6-.1 0-2.5-1-2.5-3.8ZM14.2 5.6c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.8 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.8-1.3Z"/></svg>
-            <div><b>macOS</b><div class="sub">.dmg · universal · notarized</div></div>
+            <div><b>macOS</b><div class="s">.dmg · universal</div></div>
             <span class="arr"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M7 17 17 7m0 0H8m9 0v9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           </a>
           <a class="dl-card" href="https://github.com/volnei/reviewly-app/releases/latest">
             <svg class="os" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.4 10.5 4.3V11.4H3V5.4ZM11.4 4.2 21 2.8V11.4H11.4V4.2ZM3 12.6H10.5V19.7L3 18.6V12.6ZM11.4 12.6H21V21.2L11.4 19.8V12.6Z"/></svg>
-            <div><b>Windows</b><div class="sub">.msi · .exe · x64</div></div>
+            <div><b>Windows</b><div class="s">.msi · .exe</div></div>
             <span class="arr"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M7 17 17 7m0 0H8m9 0v9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           </a>
           <a class="dl-card" href="https://github.com/volnei/reviewly-app/releases/latest">
             <svg class="os" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c-1.7 0-3 1.5-3 3.4 0 1 .1 1.9-.4 2.8-.5.9-1.7 1.9-2.3 3.6-.5 1.5-.2 2.7.1 3.8-.3.3-.5.7-.5 1.1 0 .4-.6.7-1 1-.4.3-.5.7-.2 1 .3.4 1 .3 1.6.5.5.2.8.7 1.4.9.6.2 1.4 0 1.9-.2.6.2 1.3.2 2 .2s1.4 0 2-.2c.5.2 1.3.4 1.9.2.6-.2.9-.7 1.4-.9.6-.2 1.3-.1 1.6-.5.3-.3.2-.7-.2-1-.4-.3-1-.6-1-1 0-.4-.2-.8-.5-1.1.3-1.1.6-2.3.1-3.8-.6-1.7-1.8-2.7-2.3-3.6-.5-.9-.4-1.8-.4-2.8C15 3.5 13.7 2 12 2Z"/></svg>
-            <div><b>Linux</b><div class="sub">.AppImage · .deb · .rpm</div></div>
+            <div><b>Linux</b><div class="s">.AppImage · .deb · .rpm</div></div>
             <span class="arr"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M7 17 17 7m0 0H8m9 0v9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           </a>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <hr />
+    <div class="wrap"><hr /></div>
 
-      <footer>
-        <div class="foot">
-          <a class="brand" href="#top" style="font-size:16px">
-            <span class="mark" style="width:24px;height:24px">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M9 6.5V17.5" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" />
-                <path d="M9 9.3C9.4 6.9 12 6.1 15 7.1" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" />
-              </svg>
-            </span>
-            reviewly
-          </a>
-          <span class="foot-links">
-            <a href="#features">Features</a>
-            <a href="#download">Download</a>
-          </span>
-        </div>
-        <p class="mono" style="margin-top:16px">© <span id="year">2026</span> Volnei Munhoz · made for people who actually read the diff.</p>
-      </footer>
-    </div>
+    <footer>
+      <div class="wrap foot">
+        <a class="brand" href="#top" style="font-size:16px">
+          <span class="mark" style="width:24px;height:24px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 6.5V17.5" stroke="currentColor" stroke-width="2.7" stroke-linecap="round"/><path d="M9 9.3C9.4 6.9 12 6.1 15 7.1" stroke="currentColor" stroke-width="2.7" stroke-linecap="round"/></svg></span>
+          reviewly
+        </a>
+        <span style="font-family:var(--mono);font-size:12.5px">the PR review console</span>
+        <span class="foot-links">
+          <a href="#features">Features</a>
+          <a href="#download">Download</a>
+        </span>
+      </div>
+      <div class="wrap" style="margin-top:16px;font-family:var(--mono);font-size:12px">© <span id="year">2026</span> Volnei Munhoz · made for people who actually read the diff.</div>
+    </footer>
 
     <script>
       document.getElementById("year").textContent = new Date().getFullYear();
+      const nav = document.getElementById("nav");
+      const onScroll = () => nav.classList.toggle("scrolled", scrollY > 8);
+      onScroll(); addEventListener("scroll", onScroll, { passive: true });
       (function () {
-        const ua = navigator.userAgent || "";
-        const p = navigator.platform || "";
-        let label = "Download";
-        if (/Mac/i.test(p) || /Mac/i.test(ua)) label = "Download for macOS";
-        else if (/Win/i.test(p) || /Windows/i.test(ua)) label = "Download for Windows";
-        else if (/Linux/i.test(p) && !/Android/i.test(ua)) label = "Download for Linux";
-        const el = document.getElementById("primary-dl-label");
-        if (el) el.textContent = label;
+        const ua = navigator.userAgent || "", p = navigator.platform || "";
+        let l = "Download";
+        if (/Mac/i.test(p) || /Mac/i.test(ua)) l = "Download for macOS";
+        else if (/Win/i.test(p) || /Windows/i.test(ua)) l = "Download for Windows";
+        else if (/Linux/i.test(p) && !/Android/i.test(ua)) l = "Download for Linux";
+        const el = document.getElementById("primary-dl-label"); if (el) el.textContent = l;
       })();
+      const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: 0.12, rootMargin: "0px 0px -8% 0px" });
+      document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
     </script>
   </body>
 </html>
