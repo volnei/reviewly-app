@@ -178,6 +178,26 @@
       .feat h3 { font-weight: 600; font-size: 17.5px; letter-spacing: -0.015em; margin-top: 18px; }
       .feat p { color: var(--muted); font-size: 14.5px; margin-top: 7px; line-height: 1.55; }
 
+      /* privacy callout */
+      .privacy-card {
+        border: 1px solid var(--hairline-2); border-radius: 20px; padding: 38px 40px;
+        background:
+          radial-gradient(70% 130% at 0% 0%, oklch(0.62 0.17 280 / 0.1), transparent 58%),
+          linear-gradient(180deg, oklch(0.7 0.02 75 / 0.03), oklch(0.7 0.02 75 / 0.008));
+        position: relative; overflow: hidden;
+      }
+      @media (max-width: 600px) { .privacy-card { padding: 28px 22px; } }
+      .pv-ic { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; color: var(--violet-lift); background: oklch(0.62 0.17 280 / 0.13); border: 1px solid oklch(0.62 0.17 280 / 0.28); }
+      .pv-ic svg { width: 22px; height: 22px; }
+      .privacy-card h2 { font-weight: 600; font-size: clamp(23px, 3.6vw, 31px); letter-spacing: -0.025em; margin-top: 20px; max-width: 22ch; }
+      .privacy-card > p { color: var(--muted); margin-top: 13px; max-width: 58ch; font-size: 16.5px; }
+      .guarantees { margin-top: 26px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px 28px; list-style: none; }
+      @media (max-width: 640px) { .guarantees { grid-template-columns: 1fr; } }
+      .guarantees li { display: flex; gap: 12px; font-size: 14.5px; color: var(--muted); line-height: 1.5; }
+      .guarantees .ck { flex: none; width: 20px; height: 20px; margin-top: 1px; border-radius: 6px; display: grid; place-items: center; color: var(--green); background: oklch(0.76 0.15 150 / 0.12); }
+      .guarantees .ck svg { width: 13px; height: 13px; }
+      .guarantees b { color: var(--fg); font-weight: 600; }
+
       /* download */
       .dl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 40px; }
       @media (max-width: 720px) { .dl { grid-template-columns: 1fr; } }
@@ -254,6 +274,7 @@
         </a>
         <div class="nav-right">
           <a class="t" href="#features">Features</a>
+          <a class="t" href="#privacy">Privacy</a>
           <a class="t" href="#download">Download</a>
           <a class="btn btn-primary btn-sm" href="#download">Get Reviewly</a>
         </div>
@@ -350,6 +371,43 @@
             <h3>Local &amp; private</h3>
             <p>Your token and code stay on your machine. AI review drives the Claude or Codex CLI you already have installed — nothing is uploaded to a third-party reviewer.</p>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="wrap"><hr /></div>
+
+    <!-- PRIVACY -->
+    <section id="privacy">
+      <div class="wrap narrow">
+        <div class="privacy-card reveal">
+          <span class="pv-ic">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 3 4 6v6c0 4.6 3.4 7.8 8 9 4.6-1.2 8-4.4 8-9V6l-8-3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="eyebrow" style="margin-top:18px;display:flex">Privacy by design</span>
+          <h2>Your AI. Your machine. Reviewly never sees your code.</h2>
+          <p>
+            Reviewly doesn't run its own model or proxy your code through a server. It drives the AI
+            command-line tool you already have installed — so reviews happen entirely on your machine.
+          </p>
+          <ul class="guarantees">
+            <li>
+              <span class="ck"><svg viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              <span><b>Bring your own AI.</b> Uses the Claude or Codex CLI on your machine, on your own subscription. No API keys to hand over.</span>
+            </li>
+            <li>
+              <span class="ck"><svg viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              <span><b>Nothing is sent to Reviewly.</b> Your code, diffs, and GitHub token stay local — they're never uploaded to our servers or any third party.</span>
+            </li>
+            <li>
+              <span class="ck"><svg viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              <span><b>Runs locally, talks to GitHub directly.</b> Your machine calls the GitHub API itself — Reviewly isn't in the path.</span>
+            </li>
+            <li>
+              <span class="ck"><svg viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              <span><b>We only know your login.</b> A GitHub sign-in ties your subscription to you — never what you're reviewing.</span>
+            </li>
+          </ul>
         </div>
       </div>
     </section>
